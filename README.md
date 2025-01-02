@@ -18,5 +18,6 @@
     - Create a file/class for visualizing the results
    
     - Create a file for training the model based on a larger selection of hyperparameters
+      - Look into Keras Tuner for hyperparameter tuning and GridSearchCV or RandomizedSearchCV
       - Evaluate each model and store all parameters and model results in an Excel or sth
       - Visualize the results of the models
