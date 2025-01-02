@@ -14,10 +14,13 @@
 
 2. Make everything **modular**
     - Create a **DataLoader** class for loading and preparing the dataset for training based on different parameters
-    - Create a file/class for creating the model based on different parameters
-    - Create a **Visualizer** Class for visualizing the results
-   
-    - Create a file for training the model based on a larger selection of hyperparameters
-      - Look into Keras Tuner for hyperparameter tuning and GridSearchCV or RandomizedSearchCV
-      - Evaluate each model and store all parameters and model results in an Excel or sth
-      - Visualize the results of the models
+    - Create a **Model** class for creating the model based on different parameters and add method to save model
+    - Create a **Evaluation** Class for visualizing the results and storing the results and any statistics in local files
+        - Evaluate each model and store all parameters and model results in an Excel or sth
+        - Visualize the results of the models
+    - Create a **config** file for configuring hyperparameters and create methods in the classes that take these hyperparameters as parameters
+        - Suggest to use **omegaconf** for this: https://omegaconf.readthedocs.io/en/2.3_branch/index.html
+        - Look into Keras Tuner for hyperparameter tuning and GridSearchCV or RandomizedSearchCV
+     
+     
+    
