@@ -1,7 +1,7 @@
 import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
-import random
+from sklearn.model_selection import train_test_split
 
 from loadSnapshots import loading
 
@@ -18,7 +18,6 @@ class DataLoader:
             doping (float): Doping value
             max_shots (int): Maximum number of shots per case
             target_size (tuple): Target size for the images (height, width)
-            train (bool): Whether to return training or test set
             train_split (float): Fraction of data to use for training
         """
         self.target_size = target_size
@@ -30,28 +29,31 @@ class DataLoader:
         self.samples = np.array(samples, dtype=np.float32)
         self.labels = np.array(labels, dtype=np.float32)
 
+        # Split the data into training and testing sets
+        self.samples_train, self.samples_test, self.labels_train, self.labels_test = train_test_split(
+            samples, labels, train_size=train_split, random_state=42
+        )
+
+        # Convert to NumPy arrays
+        self.samples_train = np.array(self.samples_train, dtype=np.float32)
+        self.samples_test = np.array(self.samples_test, dtype=np.float32)
+        self.labels_train = np.array(self.labels_train, dtype=np.float32)
+        self.labels_test = np.array(self.labels_test, dtype=np.float32)
+
         # Get dimensions
-        self.num_samples = len(self.samples)
-        self.input_size = self.samples[0].shape[0]
-        self.num_classes = self.labels[0].shape[0]
-
-        # Create train/test split indices
-        indices = list(range(self.num_samples))
-        random.shuffle(indices)
-        split = int(train_split * self.num_samples)
-
-        # Select appropriate indices based on train/test
-        if train:
-            self.indices = indices[:split]
-        else:
-            self.indices = indices[split:]
+        self.num_samples_train = len(self.samples_train)
+        self.num_samples_test = len(self.samples_test)
+        self.input_size = self.samples_train[0].shape[0]
+        self.num_classes = self.labels_train[0].shape[0]
 
         # First reshape to square
         orig_side_length = int(np.sqrt(self.input_size))
-        self.samples = self.samples.reshape(-1, orig_side_length, orig_side_length, 1)
+        self.samples_train = self.samples_train.reshape(-1, orig_side_length, orig_side_length, 1)
+        self.samples_test = self.samples_test.reshape(-1, orig_side_length, orig_side_length, 1)
 
         # Resize to target size
-        self.samples = self._resize_samples(self.samples)
+        self.samples_train = self._resize_samples(self.samples_train)
+        self.samples_test = self._resize_samples(self.samples_test)
 
     def _resize_samples(self, samples):
         """
@@ -86,22 +88,17 @@ class DataLoader:
         Returns:
             tf.data.Dataset: TensorFlow dataset
         """
-        # Select the appropriate data using indices
-        x = tf.gather(self.samples, self.indices)
-        y = tf.gather(self.labels, self.indices)
 
-        # Create TensorFlow dataset
-        dataset = tf.data.Dataset.from_tensor_slices((x, y))
+        # Create TensorFlow datasets
+        train_dataset = tf.data.Dataset.from_tensor_slices((self.samples_train, self.labels_train))
+        test_dataset = tf.data.Dataset.from_tensor_slices((self.samples_test, self.labels_test))
 
-        if shuffle:
-            dataset = dataset.shuffle(buffer_size=len(self.indices))
+        train_dataset = train_dataset.batch(batch_size).prefetch(tf.data.AUTOTUNE)
+        test_dataset = test_dataset.batch(batch_size).prefetch(tf.data.AUTOTUNE)
 
-        dataset = dataset.batch(batch_size)
-        dataset = dataset.prefetch(tf.data.AUTOTUNE)
+        return train_dataset, test_dataset
 
-        return dataset
-
-    def visualize_sample(self, index, show_grid=True):
+    def visualize_sample(self, index, train=True, show_grid=True):
         """
         Visualize a single sample.
         
@@ -109,24 +106,24 @@ class DataLoader:
             index (int): Index of the sample to visualize
             show_grid (bool): Whether to show grid lines
         """
-        if index >= len(self.indices):
-            raise ValueError(f"Index {index} is out of bounds for dataset of size {len(self.indices)}")
 
-        actual_idx = self.indices[index]
-        sample = self.samples[actual_idx]
-        label = self.labels[actual_idx]
+        if train:
+            samples = self.samples_train
+            labels = self.labels_train
+        else:
+            samples = self.samples_test
+            labels = self.labels_test
 
-        plt.figure(figsize=(8, 8))
+        sample = samples[index]
+        label = labels[index]
+
         plt.imshow(sample[:, :, 0], cmap=plt.cm.coolwarm, interpolation='nearest')
-
-        if show_grid:
-            plt.grid(True, which='both', color='black', linewidth=0.5, alpha=0.3)
-
-        plt.title(f"Sample {index}\nClass: {np.argmax(label)}\nSize: {sample.shape[:2]}")
+        plt.grid(show_grid, which='both', color='black', linewidth=0.5, alpha=0.3)
+        plt.title(f"Class: {np.argmax(label)}\nSize: {sample.shape[:2]}")
         plt.colorbar()
         plt.show()
 
-    def visualize_batch(self, num_samples=4, rows=2):
+    def visualize_batch(self, train=True, num_samples=4, rows=2):
         """
         Visualize multiple samples in a grid.
         
@@ -134,42 +131,60 @@ class DataLoader:
             num_samples (int): Number of samples to visualize
             rows (int): Number of rows in the visualization grid
         """
-        cols = (num_samples + rows - 1) // rows
+        # Get samples
+        if train:
+            samples = self.samples_train[:num_samples]
+            labels = self.labels_train[:num_samples]
+        else:
+            samples = self.samples_test[:num_samples]
+            labels = self.labels_test[:num_samples]
 
-        plt.figure(figsize=(4 * cols, 4 * rows))
+        # Create grid
+        cols = num_samples // rows
+        plt.figure(figsize=(cols * 4, rows * 4))
 
-        for i in range(min(num_samples, len(self.indices))):
-            actual_idx = self.indices[i]
-            sample = self.samples[actual_idx]
-            label = self.labels[actual_idx]
-
+        for i in range(num_samples):
             plt.subplot(rows, cols, i + 1)
-            plt.imshow(sample[:, :, 0], cmap=plt.cm.coolwarm, interpolation='nearest')
-            plt.grid(True, which='both', color='black', linewidth=0.5, alpha=0.3)
-            plt.title(f"Class: {np.argmax(label)}\nSize: {sample.shape[:2]}")
+            plt.imshow(samples[i][:, :, 0], cmap=plt.cm.coolwarm, interpolation='nearest')
+            plt.title(f"Class: {np.argmax(labels[i])}\nSize: {samples[i].shape[:2]}")
             plt.colorbar()
+            plt.axis('off')
 
         plt.tight_layout()
         plt.show()
 
     def visualize_class_distribution(self):
         """
-        Visualize the class distribution in the dataset.
+        Visualize the class distribution in the dataset for training and testing.
+
         """
-        counts = np.zeros(self.num_classes)
+        # Get class labels
+        train_labels = np.argmax(self.labels_train, axis=1)
+        test_labels = np.argmax(self.labels_test, axis=1)
 
-        for i in self.indices:
-            label = self.labels[i]
-            counts[np.argmax(label)] += 1
+        # Plot histograms
+        plt.figure(figsize=(12, 6))
 
-        plt.figure(figsize=(8, 8))
-        plt.bar(range(self.num_classes), counts)
+        plt.subplot(1, 2, 1)
+        plt.hist(train_labels, bins=np.arange(self.num_classes + 1) - 0.5, rwidth=0.5, alpha=0.75)
+        plt.title("Training Set")
         plt.xlabel("Class")
         plt.ylabel("Count")
-        plt.title("Class Distribution")
+        plt.xticks(range(self.num_classes))
+
+        plt.subplot(1, 2, 2)
+        plt.hist(test_labels, bins=np.arange(self.num_classes + 1) - 0.5, rwidth=0.5, alpha=0.75)
+        plt.title("Testing Set")
+        plt.xlabel("Class")
+        plt.ylabel("Count")
+        plt.xticks(range(self.num_classes))
+
+        plt.tight_layout()
         plt.show()
 
-def get_data_loaders(cases, doping, max_shots, target_size=(10, 10), batch_size=32, train_split=0.8):
+
+def get_data_loaders(cases, doping, max_shots, target_size=(10, 10), batch_size=32, train_split=0.8) -> tuple[
+    tf.data.Dataset, tf.data.Dataset, DataLoader]:
     """
     Create TensorFlow datasets for training and testing.
     
@@ -180,55 +195,27 @@ def get_data_loaders(cases, doping, max_shots, target_size=(10, 10), batch_size=
         target_size (tuple): Target size for the images (height, width)
         batch_size (int): Size of each batch
         train_split (float): Fraction of data to use for training
-        
     Returns:
-        tuple: (train_dataset, test_dataset, train_data_obj, test_data_obj)
+        tuple: (train_dataset, test_dataset, data_loader_obj)
     """
-    # Create training dataset
-    train_data = DataLoader(
-        cases=cases,
-        doping=doping,
-        max_shots=max_shots,
-        target_size=target_size,
-        train=True,
-        train_split=train_split
-    )
+    data_loader_obj = DataLoader(cases, doping, max_shots, target_size=target_size, train_split=train_split)
+    train_dataset, test_dataset = data_loader_obj.get_tf_dataset(batch_size=batch_size)
 
-    # Create test dataset
-    test_data = DataLoader(
-        cases=cases,
-        doping=doping,
-        max_shots=max_shots,
-        target_size=target_size,
-        train=False,
-        train_split=train_split
-    )
-
-    # Create TensorFlow datasets
-    train_dataset = train_data.get_tf_dataset(batch_size=batch_size)
-    test_dataset = test_data.get_tf_dataset(batch_size=batch_size, shuffle=False)
-
-    return train_dataset, test_dataset, train_data, test_data
+    return train_dataset, test_dataset, data_loader_obj
 
 
 if __name__ == "__main__":
-    train_dataset, test_dataset, train_data, test_data = get_data_loaders(
+    train_data, test_data, data_loader = get_data_loaders(
         cases=["AS", "exp", "pi"],
         doping=6.0,
-        max_shots=1000,
+        max_shots=10000,
         train_split=0.8)
-    # print out some shapes and sizes with according titles
-    print("samples shape: ", train_data.samples.shape)
-    print("labels shape: ", train_data.labels.shape)
-    print("num samples: ", train_data.num_samples)
-    print("input size: ", train_data.input_size)
-    print("num classes", train_data.num_classes)
-    print("target size: ", train_data.target_size)
 
-    # Visualize some samples
-    train_data.visualize_sample(0)  # Show first sample
-    train_data.visualize_batch(num_samples=8)  # Show grid of 8 samples
+    # Visualize a single sample
+    data_loader.visualize_sample(0, train=True)
+
+    # Visualize a batch of samples
+    data_loader.visualize_batch(train=True, num_samples=8, rows=2)
 
     # Visualize class distribution
-    train_data.visualize_class_distribution()
-    test_data.visualize_class_distribution()
+    data_loader.visualize_class_distribution()
