@@ -208,7 +208,7 @@ if __name__ == "__main__":
     train_data, test_data, data_loader = get_data_loaders(
         cases=["AS", "exp", "pi"],
         doping=6.0,
-        max_shots=10000,
+        max_shots=1000,
         train_split=0.8)
 
     # Visualize a single sample
