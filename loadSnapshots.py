@@ -211,11 +211,13 @@ def loading(cases, doping, maxShots, visualize=False):
         print('mean stagg mag taken: ', str(np.mean(sms_tmp[:int(ps * len(sample_tmp))])))
         print('mean stagg mag: ', str(np.mean(sms)))
         sms_fin.append(np.mean(sms_tmp[:int(ps * len(sample_tmp))]))
-
-        hist, bin_edges = np.histogram([abs(sm) for sm in sms_tmp], bins=np.arange(1, 50, 2.0))  # 0.66,0.06))
-        hist = [1.0 * h / len(sms_tmp) for h in hist]
-        plt.plot(bin_edges[:-1], hist, '--^')
-        plt.show()
+        
+        # plot histogram of stagg mags
+        if visualize:
+            hist, bin_edges = np.histogram([abs(sm) for sm in sms_tmp], bins=np.arange(1, 50, 2.0))  # 0.66,0.06))
+            hist = [1.0 * h / len(sms_tmp) for h in hist]
+            plt.plot(bin_edges[:-1], hist, '--^')
+            plt.show()
 
         print(str(len(sample_tmp)), ' snapshots')
 
