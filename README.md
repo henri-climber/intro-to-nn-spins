@@ -13,7 +13,7 @@
     - (Depending on training time try to train the model on CIP-Pool)
 
 2. Make everything **modular**
-    - Create a **DataLoader** class for loading and preparing the dataset for training based on different parameters
+    - Create a **DataLoader** class for loading and preparing the dataset for training based on different parameters **DONE**
     - Create a **Model** class for creating the model based on different parameters and add method to save model
     - Create a **Evaluation** Class for visualizing the results and storing the results and any statistics in local files
         - Evaluate each model and store all parameters and model results in an Excel or sth
