@@ -8,7 +8,7 @@ class ModelBuilder:
     Allows easy customization of model architecture.
     """
 
-    def __init__(self, input_shape=(10, 10, 1), num_classes=2, optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'], run=None):
+    def __init__(self, input_shape=(10, 10, 1), num_classes=None, optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'], run=None):
         """
         Initialize ModelBuilder with input shape, number of classes, and training configurations.
 
