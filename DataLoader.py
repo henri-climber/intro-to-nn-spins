@@ -9,7 +9,7 @@ from loadSnapshots import loading
 class DataLoader:
     """Dataset class for loading and processing snapshot data using TensorFlow."""
 
-    def __init__(self, cases, doping, max_shots, target_size=(10, 10), train=True, train_split=0.7, val_split=0.1):
+    def __init__(self, cases, doping, max_shots, target_size=(10, 10), train_split=0.7, val_split=0.1):
         """
         Initialize the dataset.
         
