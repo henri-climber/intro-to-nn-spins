@@ -9,7 +9,8 @@ from loadSnapshots import loading
 class DataLoader:
     """Dataset class for loading and processing snapshot data using TensorFlow."""
 
-    def __init__(self, cases, doping, max_shots, target_size=(10, 10), train_split=0.7, val_split=0.1):
+    def __init__(self, cases, doping, max_shots, combine_exp_as=False, target_size=(10, 10), train_split=0.7,
+                 val_split=0.1):
         """
         Initialize the dataset.
         
@@ -29,9 +30,12 @@ class DataLoader:
         self.samples = np.array(samples, dtype=np.float32)
         self.labels = np.array(labels, dtype=np.float32)
 
+        if combine_exp_as:
+            self.labels = self._combine_exp_as(self.labels)
+
         # Split into train+val and test
         train_val_samples, self.samples_test, train_val_labels, self.labels_test = train_test_split(
-            samples, labels, test_size=1.0 - (train_split + val_split), random_state=42
+            self.samples, self.labels, test_size=1.0 - (train_split + val_split), random_state=42
         )
 
         # Split train+val into train and validation
@@ -64,6 +68,27 @@ class DataLoader:
         self.samples_train = self._resize_samples(self.samples_train)
         self.samples_test = self._resize_samples(self.samples_test)
         self.samples_val = self._resize_samples(self.samples_val)
+
+    def _combine_exp_as(self, labels):
+        """
+        Combine 'exp' and 'AS' labels into a single class.
+
+        Args:
+            labels (np.ndarray): Array of one-hot encoded labels
+
+        Returns:
+            np.ndarray: Combined labels
+        """
+        # Get indices of 'exp' and 'AS' classes
+        exp_idx = self.classes.index("exp")
+        as_idx = self.classes.index("AS")
+
+        # Combine classes
+        combined_labels = np.copy(labels)
+        combined_labels[:, exp_idx] = np.logical_or(labels[:, exp_idx], labels[:, as_idx])
+        combined_labels = np.delete(combined_labels, as_idx, axis=1)
+
+        return combined_labels
 
     def _resize_samples(self, samples):
         """
@@ -215,7 +240,8 @@ class DataLoader:
         plt.show()
 
 
-def get_data_loaders(cases, doping, max_shots, target_size=(10, 10), batch_size=32, train_split=0.8) -> tuple[
+def get_data_loaders(cases, doping, max_shots, combine_exp_as=False, target_size=(10, 10), batch_size=32,
+                     train_split=0.8) -> tuple[
     tf.data.Dataset, tf.data.Dataset, tf.data.Dataset, DataLoader]:
     """
     Create TensorFlow datasets for training and testing.
@@ -230,7 +256,8 @@ def get_data_loaders(cases, doping, max_shots, target_size=(10, 10), batch_size=
     Returns:
         tuple: (train_dataset, test_dataset, data_loader_obj)
     """
-    data_loader_obj = DataLoader(cases, doping, max_shots, target_size=target_size, train_split=train_split)
+    data_loader_obj = DataLoader(cases, doping, max_shots, combine_exp_as=combine_exp_as, target_size=target_size,
+                                 train_split=train_split)
     train_dataset, val_dataset, test_dataset = data_loader_obj.get_tf_dataset(batch_size=batch_size)
 
     return train_dataset, val_dataset, test_dataset, data_loader_obj
@@ -240,6 +267,7 @@ if __name__ == "__main__":
     train_data, val_data, test_data, data_loader = get_data_loaders(
         cases=["AS", "exp", "pi"],
         doping=6.0,
+        combine_exp_as=True,
         max_shots=1000,
         train_split=0.8)
 
