@@ -4,7 +4,8 @@ import tensorflow as tf
 
 
 class ModelTrainer:
-    def __init__(self, model, train_dataset, val_dataset, test_dataset, epochs=20, callbacks=None, metrics=[], run=None):
+    def __init__(self, model, train_dataset, val_dataset, test_dataset, epochs=20, callbacks=None, metrics=[],
+                 run=None):
         """
         Initialize the Trainer with datasets and training configuration.
 
@@ -50,6 +51,8 @@ class ModelTrainer:
                 self.run["val/loss"].append(history.history['val_loss'][epoch])
                 self.run["val/accuracy"].append(history.history['val_accuracy'][epoch])
 
+            self.save()
+
         return history
 
     def evaluate(self):
@@ -68,6 +71,18 @@ class ModelTrainer:
         # Log test metrics to Neptune
         if self.run:
             for metric, value in metrics.items():
-                self.run[f"test/{metric}"] = value
+                if metric == "loss":
+                    continue
+                self.run[f"test/{metric.name}"] = value
 
         return metrics
+
+    def save(self):
+        """
+        Save the model to a file.
+
+        Args:
+            path (str): Path to save the model.
+        """
+        self.model.save("Model/model.keras")
+        self.run["model/saved_model"].upload("Model/model.keras")

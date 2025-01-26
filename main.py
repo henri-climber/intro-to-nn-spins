@@ -16,7 +16,6 @@ NEPTUNE_API_KEY = os.getenv("NEPTUNE_API")
 if not NEPTUNE_API_KEY:
     raise ValueError("Neptune API key not found. Please set NEPTUNE_API in the .env file.")
 
-
 classes = ["exp", "AS"]
 
 # Example datasets (Replace with actual tf.data.Dataset)
@@ -25,7 +24,6 @@ train_data, val_data, test_data, data_loader = get_data_loaders(
     doping=6.0,
     max_shots=1500,
     batch_size=200,
-
     train_split=0.8)
 
 # Define lists for each parameter
@@ -36,10 +34,8 @@ learning_rate_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
     decay_steps=10000,
     decay_rate=0.96
 )
-optimizers = [
-    tf.keras.optimizers.Adam(learning_rate=learning_rate_schedule),
-    tf.keras.optimizers.Adam(learning_rate=0.0001),  # Lower learning rate for fine-tuning
-    tf.keras.optimizers.Adam(learning_rate=0.01)  # Higher learning rate for faster convergence
+learning_rates = [
+    0.001, 0.0001, 0.01
 ]
 losses = ["categorical_crossentropy"]
 metrics_list = [[tf.keras.metrics.CategoricalAccuracy(name="accuracy"), tf.keras.metrics.Precision(name="precision"),
@@ -50,20 +46,22 @@ callbacks_list = [[tf.keras.callbacks.EarlyStopping(
     patience=100,  # Number of epochs with no improvement before stopping
     verbose=1,  # Provide verbose output for better monitoring
     mode='min',  # Stop when the monitored value stops decreasing
-    restore_best_weights=True  # Restore the weights from the best epoch
+    restore_best_weights=False
 )], None]
 
 # Generate all combinations of parameters
-for input_shape, num_classes, optimizer, loss, metrics, callbacks in product(
-        input_shapes, num_classes_list, optimizers, losses, metrics_list, callbacks_list):
+for input_shape, num_classes, learning_rate, loss, metrics, callbacks in product(
+        input_shapes, num_classes_list, learning_rates, losses, metrics_list, callbacks_list):
     # TODO: try different model architectures
     conv_layer_options = [
         # Single-layer convolution for simplicity
         [
             {"filters": 20, "kernel_size": (3, 3), "activation": "relu", "pooling": (2, 2)}
+        ], [
+            {"filters": 20, "kernel_size": (3, 3), "activation": "relu", "pooling": None}
         ],
         [
-            {"filters": 24, "kernel_size": (2, 2), "activation": "relu", "pooling": (2, 2)}
+            {"filters": 24, "kernel_size": (4, 4), "activation": "relu", "pooling": (2, 2)}
         ],
         # Two-layer convolution with small kernels
         [
@@ -79,13 +77,13 @@ for input_shape, num_classes, optimizer, loss, metrics, callbacks in product(
 
     dense_layer_options = [
         # Simple fully connected layer with minimal regularization
-        [(32, 0.3)],
+        [(32, 0.2)],
         # Two dense layers with moderate dropout
-        [(64, 0.3), (32, 0.5)],
+        [(64, 0.3), (32, 0.1)],
         # Deeper network with stronger regularization
-        [(128, 0.4), (64, 0.3), (32, 0.5)],
+        [(128, 0.7), (64, 0.3), (32, 0.5)],
         # Very minimal dense layers for simplicity
-        [(16, 0.2)]
+        [(16, 0.1)]
     ]
 
     # Build model
@@ -97,6 +95,8 @@ for input_shape, num_classes, optimizer, loss, metrics, callbacks in product(
             monitoring_namespace="monitoring",
             capture_hardware_metrics=True
         )
+
+        optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
         run["sys/tags"].add([
             f"input_shape_{input_shape}",

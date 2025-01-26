@@ -21,7 +21,7 @@ class DataLoader:
             train_split (float): Fraction of data to use for training
         """
         self.target_size = target_size
-
+        self.classes = cases
         # Load the raw data
         samples, labels, self.sms = loading(cases, doping, max_shots)
 
@@ -137,7 +137,7 @@ class DataLoader:
 
         plt.imshow(sample[:, :, 0], cmap=plt.cm.coolwarm, interpolation='nearest')
         plt.grid(show_grid, which='both', color='black', linewidth=0.5, alpha=0.3)
-        plt.title(f"Class: {np.argmax(label)}\nSize: {sample.shape[:2]}")
+        plt.title(f"Class: {np.argmax(label)} {self.classes[np.argmax(label)]}\nSize: {sample.shape[:2]}")
         plt.colorbar()
         plt.show()
 
@@ -170,7 +170,7 @@ class DataLoader:
         for i in range(num_samples):
             plt.subplot(rows, cols, i + 1)
             plt.imshow(samples[i][:, :, 0], cmap=plt.cm.coolwarm, interpolation='nearest')
-            plt.title(f"Class: {np.argmax(labels[i])}\nSize: {samples[i].shape[:2]}")
+            plt.title(f"Class: {self.classes[np.argmax(labels[i])]}\nSize: {samples[i].shape[:2]}")
             plt.colorbar()
             plt.axis('off')
 
@@ -231,7 +231,7 @@ def get_data_loaders(cases, doping, max_shots, target_size=(10, 10), batch_size=
         tuple: (train_dataset, test_dataset, data_loader_obj)
     """
     data_loader_obj = DataLoader(cases, doping, max_shots, target_size=target_size, train_split=train_split)
-    train_dataset,val_dataset, test_dataset = data_loader_obj.get_tf_dataset(batch_size=batch_size)
+    train_dataset, val_dataset, test_dataset = data_loader_obj.get_tf_dataset(batch_size=batch_size)
 
     return train_dataset, val_dataset, test_dataset, data_loader_obj
 
