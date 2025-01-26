@@ -16,9 +16,12 @@ NEPTUNE_API_KEY = os.getenv("NEPTUNE_API")
 if not NEPTUNE_API_KEY:
     raise ValueError("Neptune API key not found. Please set NEPTUNE_API in the .env file.")
 
+
+classes = ["exp", "AS"]
+
 # Example datasets (Replace with actual tf.data.Dataset)
 train_data, val_data, test_data, data_loader = get_data_loaders(
-    cases=["exp", "AS"],
+    cases=classes,
     doping=6.0,
     max_shots=1500,
     batch_size=200,
@@ -27,7 +30,7 @@ train_data, val_data, test_data, data_loader = get_data_loaders(
 
 # Define lists for each parameter
 input_shapes = [(10, 10, 1)]
-num_classes_list = [2]
+num_classes_list = [len(classes)]
 learning_rate_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
     initial_learning_rate=0.001,
     decay_steps=10000,
