@@ -18,13 +18,12 @@ if not NEPTUNE_API_KEY:
 
 classes = ["AS", "pi"]
 
-doping = 6.0
-
 # Example datasets (Replace with actual tf.data.Dataset)
+doping = 9.0
 train_data, val_data, test_data, data_loader = get_data_loaders(
     cases=classes,
     doping=doping,
-    max_shots=1500,
+    max_shots=1200,
     batch_size=200,
     train_split=0.8)
 
@@ -49,7 +48,14 @@ callbacks_list = [[tf.keras.callbacks.EarlyStopping(
     verbose=1,  # Provide verbose output for better monitoring
     mode='min',  # Stop when the monitored value stops decreasing
     restore_best_weights=False
-)], None]
+)], [tf.keras.callbacks.EarlyStopping(
+    monitor='val_loss',  # Monitor validation loss to detect overfitting
+    min_delta=0.001,  # Minimum improvement to reset patience
+    patience=200,  # Number of epochs with no improvement before stopping
+    verbose=1,  # Provide verbose output for better monitoring
+    mode='min',  # Stop when the monitored value stops decreasing
+    restore_best_weights=False
+)]]
 
 # Generate all combinations of parameters
 for input_shape, num_classes, learning_rate, loss, metrics, callbacks in product(
@@ -103,11 +109,11 @@ for input_shape, num_classes, learning_rate, loss, metrics, callbacks in product
         run["sys/tags"].add([
             f"input_shape_{input_shape}",
             f"num_classes_{num_classes}",
+            f"without_exp_{True}",
             f"optimizer_{optimizer}",
             f"loss_{loss}",
             f"metrics_{metrics}",
-            f"doping_{doping}",
-            f"without_exp_{True}"
+            f"doping_{doping}"
         ])
 
         # Build model using ModelBuilder
@@ -123,6 +129,8 @@ for input_shape, num_classes, learning_rate, loss, metrics, callbacks in product
         model = builder.build_custom_cnn(conv_layers, dense_layers)
 
         model.summary()
+
+        print(train_data.take(1))
 
         # Train and evaluate model using Trainer
         model_trainer = ModelTrainer(
