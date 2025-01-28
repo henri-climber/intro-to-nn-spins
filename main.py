@@ -16,12 +16,14 @@ NEPTUNE_API_KEY = os.getenv("NEPTUNE_API")
 if not NEPTUNE_API_KEY:
     raise ValueError("Neptune API key not found. Please set NEPTUNE_API in the .env file.")
 
-classes = ["exp", "AS"]
+classes = ["AS", "pi"]
+
+doping = 6.0
 
 # Example datasets (Replace with actual tf.data.Dataset)
 train_data, val_data, test_data, data_loader = get_data_loaders(
     cases=classes,
-    doping=6.0,
+    doping=doping,
     max_shots=1500,
     batch_size=200,
     train_split=0.8)
@@ -103,7 +105,9 @@ for input_shape, num_classes, learning_rate, loss, metrics, callbacks in product
             f"num_classes_{num_classes}",
             f"optimizer_{optimizer}",
             f"loss_{loss}",
-            f"metrics_{metrics}"
+            f"metrics_{metrics}",
+            f"doping_{doping}",
+            f"without_exp_{True}"
         ])
 
         # Build model using ModelBuilder

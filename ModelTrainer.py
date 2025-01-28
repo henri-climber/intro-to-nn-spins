@@ -1,4 +1,5 @@
 import copy
+import os.path
 
 import tensorflow as tf
 
@@ -84,5 +85,7 @@ class ModelTrainer:
         Args:
             path (str): Path to save the model.
         """
+        if os.path.exists("Model") is False:
+            os.mkdir("Model")
         self.model.save("Model/model.keras")
         self.run["model/saved_model"].upload("Model/model.keras")
