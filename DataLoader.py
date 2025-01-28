@@ -134,7 +134,7 @@ class DataLoader:
 
         return train_dataset, val_dataset, test_dataset
 
-    def visualize_sample(self, index, sample_type: str, show_grid=True):
+    def visualize_sample(self, index, doping, sample_type: str, show_grid=True):
         """
         Visualize a single sample.
         
@@ -162,11 +162,10 @@ class DataLoader:
 
         plt.imshow(sample[:, :, 0], cmap=plt.cm.coolwarm, interpolation='nearest')
         plt.grid(show_grid, which='both', color='black', linewidth=0.5, alpha=0.3)
-        plt.title(f"Class: {np.argmax(label)} {self.classes[np.argmax(label)]}\nSize: {sample.shape[:2]}")
-        plt.colorbar()
+        plt.title(f"Class: {np.argmax(label)} {self.classes[np.argmax(label)]}\nDoping: {doping}")
         plt.show()
 
-    def visualize_batch(self, sample_type: str, num_samples=4, rows=2):
+    def visualize_batch(self, doping, sample_type: str, num_samples=4, rows=2):
         """
         Visualize multiple samples in a grid.
         
@@ -195,8 +194,7 @@ class DataLoader:
         for i in range(num_samples):
             plt.subplot(rows, cols, i + 1)
             plt.imshow(samples[i][:, :, 0], cmap=plt.cm.coolwarm, interpolation='nearest')
-            plt.title(f"Class: {self.classes[np.argmax(labels[i])]}\nSize: {samples[i].shape[:2]}")
-            plt.colorbar()
+            plt.title(f"Class: {self.classes[np.argmax(labels[i])]}\nDoping: {doping}")
             plt.axis('off')
 
         plt.tight_layout()
@@ -264,18 +262,18 @@ def get_data_loaders(cases, doping, max_shots, combine_exp_as=False, target_size
 
 
 if __name__ == "__main__":
+    doping = 6.0
     train_data, val_data, test_data, data_loader = get_data_loaders(
         cases=["AS", "exp", "pi"],
-        doping=6.0,
-        combine_exp_as=True,
-        max_shots=1000,
+        doping=doping,
+        max_shots=1500,
         train_split=0.8)
 
     # Visualize a single sample
-    data_loader.visualize_sample(0, sample_type="train")
+    data_loader.visualize_sample(0, doping, sample_type="train")
 
     # Visualize a batch of samples
-    data_loader.visualize_batch(sample_type="train", num_samples=8, rows=2)
+    data_loader.visualize_batch(doping, sample_type="train", num_samples=8, rows=2)
 
     # Visualize class distribution
     data_loader.visualize_class_distribution()
