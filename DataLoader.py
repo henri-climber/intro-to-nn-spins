@@ -241,7 +241,7 @@ class DataLoader:
 
 
 def get_data_loaders(cases, doping, max_shots, combine_exp_as=False, target_size=(10, 10), batch_size=32,
-                     train_split=0.8) -> tuple[
+                     train_split=0.8, val_split=0.1) -> tuple[
     tf.data.Dataset, tf.data.Dataset, tf.data.Dataset, DataLoader]:
     """
     Create TensorFlow datasets for training and testing.
@@ -257,7 +257,7 @@ def get_data_loaders(cases, doping, max_shots, combine_exp_as=False, target_size
         tuple: (train_dataset, test_dataset, data_loader_obj)
     """
     data_loader_obj = DataLoader(cases, doping, max_shots, combine_exp_as=combine_exp_as, target_size=target_size,
-                                 train_split=train_split)
+                                 train_split=train_split, val_split=val_split)
     train_dataset, val_dataset, test_dataset = data_loader_obj.get_tf_dataset(batch_size=batch_size)
 
     return train_dataset, val_dataset, test_dataset, data_loader_obj
